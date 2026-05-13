@@ -21,7 +21,9 @@ public class SecurityConfig {
                         .anyRequest().authenticated() // Protected[cite: 1]
                 )
                 .formLogin(form -> form
-                        .defaultSuccessUrl("/index.html", true) // Login ke baad kahan jana hai[cite: 1]
+                        .loginPage("/login.html") // Tumhara custom page
+                        .loginProcessingUrl("/login") // Ye default hi rehta hai
+                        .defaultSuccessUrl("/index.html", true)
                         .permitAll()
                 )
                 .logout(logout -> logout.permitAll());
