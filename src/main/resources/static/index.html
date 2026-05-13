@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BPO Support Desk</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 40px; background-color: #f4f7f6; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+        .input-area { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; }
+        .btn-save { background-color: #28a745; color: white; }
+        .btn-delete { background-color: #dc3545; color: white; padding: 5px 10px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background-color: #007bff; color: white; }
+        .status { background: #eee; padding: 3px 8px; border-radius: 4px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🎧 Support Ticket System</h2>
+
+    <div style="display: flex; gap: 15px; margin-bottom: 20px; text-align: center;">
+        <div style="flex: 1; background: #007bff; color: white; padding: 10px; border-radius: 8px;">
+            <p style="margin: 0; font-size: 0.9em;">Total</p>
+            <h2 id="totalCount" style="margin: 5px 0;">0</h2>
+        </div>
+        <div style="flex: 1; background: #dc3545; color: white; padding: 10px; border-radius: 8px;">
+            <p style="margin: 0; font-size: 0.9em;">Open</p>
+            <h2 id="openCount" style="margin: 5px 0;">0</h2>
+        </div>
+        <div style="flex: 1; background: #ffc107; color: black; padding: 10px; border-radius: 8px;">
+            <p style="margin: 0; font-size: 0.9em;">Pending</p>
+            <h2 id="pendingCount" style="margin: 5px 0;">0</h2>
+        </div>
+        <div style="flex: 1; background: #28a745; color: white; padding: 10px; border-radius: 8px;">
+            <p style="margin: 0; font-size: 0.9em;">Solved</p>
+            <h2 id="solvedCount" style="margin: 5px 0;">0</h2>
+        </div>
+    </div>
+
+    <div class="input-area">
+        <input type="text" id="issueInput" placeholder="Describe the issue here...">
+        <button class="btn-save" onclick="createTicket()">Create Ticket</button>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+        <input type="text" id="searchInput" placeholder="Search issues (e.g. laptop, login)..."
+               onkeyup="searchTickets()" style="width: 100%; border: 2px solid #007bff;">
+    </div>
+
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Issue</th>
+            <th>Status</th>
+            <th>Action</th>
+        </tr>
+        </thead>
+        <tbody id="ticketTableBody">
+        </tbody>
+    </table>
+</div>
+
+<script>
+    const API_URL = "http://localhost:8080";
+
+    function updateDashboardStats(tickets) {
+        const total = tickets.length;
+
+        // .trim() extra spaces hata dega aur .toUpperCase() spelling match karega
+        const open = tickets.filter(t => {
+            const s = t.status ? t.status.trim().toUpperCase() : "";
+            return s === 'OPEN' || s === ''; // Agar status khali hai toh use bhi OPEN maano
+        }).length;
+
+        const pending = tickets.filter(t => t.status && t.status.trim().toUpperCase() === 'PENDING').length;
+        const solved = tickets.filter(t => t.status && t.status.trim().toUpperCase() === 'SOLVED').length;
+
+        document.getElementById('totalCount').innerText = total;
+        document.getElementById('openCount').innerText = open;
+        document.getElementById('pendingCount').innerText = pending;
+        document.getElementById('solvedCount').innerText = solved;
+    }
+    // 1. Fetch all tickets
+    async function fetchTickets() {
+        try {
+            const response = await fetch(API_URL + "/all-tickets");
+            const tickets = await response.json();
+            updateDashboardStats(tickets); // Stats update karne ke liye
+            const tableBody = document.getElementById('ticketTableBody');
+            tableBody.innerHTML = "";
+
+            tickets.forEach(function(ticket) {
+                // 1. Status ke hisaab se color choose karo
+                let bgColor = "white"; // Default color
+                let textColor = "black";
+
+                if (ticket.status === 'SOLVED') {
+                    bgColor = "#d4edda"; // Light Green
+                    textColor = "#155724";
+                } else if (ticket.status === 'PENDING') {
+                    bgColor = "#fff3cd"; // Light Yellow
+                    textColor = "#856404";
+                } else if (ticket.status === 'OPEN') {
+                    bgColor = "#f8d7da"; // Light Red
+                    textColor = "#721c24";
+                }
+
+                // 2. <tr> tag mein style="background-color: ${bgColor}" dalo
+                tableBody.innerHTML += `
+        <tr style="background-color: ${bgColor}; color: ${textColor}; transition: 0.3s;">
+            <td>${ticket.id}</td>
+            <td style="font-weight: 500;">${ticket.issue}</td>
+            <td>
+                <select id="status-${ticket.id}" onchange="changeStatus(${ticket.id}, '${ticket.issue}')" style="padding:5px; border-radius:4px; border:1px solid #ccc;">
+                    <option value="OPEN" ${ticket.status === 'OPEN' ? 'selected' : ''}>OPEN</option>
+                    <option value="PENDING" ${ticket.status === 'PENDING' ? 'selected' : ''}>PENDING</option>
+                    <option value="SOLVED" ${ticket.status === 'SOLVED' ? 'selected' : ''}>SOLVED</option>
+                </select>
+            </td>
+            <td>
+                <button class="btn-delete" onclick="deleteTicket(${ticket.id})" style="background:#dc3545; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Delete</button>
+            </td>
+        </tr>
+    `;
+            });
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        }
+    }
+
+    // 2. Create a new ticket
+    async function createTicket() {
+        const issueInput = document.getElementById('issueInput');
+        const issueValue = issueInput.value;
+
+        if (!issueValue) {
+            alert("Please enter an issue!");
+            return;
+        }
+
+        const ticketData = {
+            issue: issueValue,
+            status: "OPEN"
+        };
+
+        try {
+            const response = await fetch(API_URL + "/create-ticket", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(ticketData)
+            });
+
+            if (response.ok) {
+                issueInput.value = ""; // Input clear karo
+                fetchTickets(); // List refresh karo
+            }
+        } catch (error) {
+            console.error("Error saving ticket:", error);
+        }
+    }
+
+    // 3. Delete a ticket
+    async function deleteTicket(id) {
+        if (confirm("Are you sure you want to delete this?")) {
+            try {
+                await fetch(API_URL + "/delete-ticket/" + id, {
+                    method: "DELETE"
+                });
+                fetchTickets(); // List refresh karo
+            } catch (error) {
+                console.error("Error deleting ticket:", error);
+            }
+        }
+    }
+
+    // 4. Update status
+    async function updateStatus(id, issueText) {
+        // Hum ek object banayenge jisme status "RESOLVED" hoga
+        const updatedData = {
+            issue: issueText,
+            status: "RESOLVED"
+        };
+
+        try {
+            const response = await fetch(API_URL + "/update-ticket/" + id, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updatedData)
+            });
+
+            if (response.ok) {
+                alert("Ticket Resolved!");
+                fetchTickets(); // Table refresh karo naya status dikhane ke liye
+            }
+        } catch (error) {
+            console.error("Update Error:", error);
+        }
+    }
+
+    // Change status
+    async function changeStatus(id, issueText) {
+        // Dropdown se nayi value uthao
+        const newStatus = document.getElementById(`status-${id}`).value;
+
+        const updatedData = {
+            issue: issueText,
+            status: newStatus
+        };
+
+        try {
+            const response = await fetch(API_URL + "/update-ticket/" + id, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updatedData)
+            });
+
+            if (response.ok) {
+                console.log("Status updated to: " + newStatus);
+                fetchTickets(); // Agar turant refresh chahiye tickets me or count me
+            }
+        } catch (error) {
+            console.error("Update failed:", error);
+        }
+    }
+
+// Ye function har key press par table ko filter krega (Backend ko call krega)
+    async function searchTickets() {
+        const keyword = document.getElementById('searchInput').value;
+
+        // Agar search box khali hai, toh saare tickets dikhao
+        if (!keyword) {
+            fetchTickets();
+            return;
+        }
+
+        try {
+            // Backend ke search endpoint ko call karo
+            const response = await fetch(API_URL + "/tickets/issue/" + keyword);
+            const filteredTickets = await response.json();
+
+            const tableBody = document.getElementById('ticketTableBody');
+            tableBody.innerHTML = "";
+
+            filteredTickets.forEach(ticket => {
+                // Wahi same dropdown wala row yahan bhi aayega
+                tableBody.innerHTML += `
+                <tr>
+                    <td>${ticket.id}</td>
+                    <td>${ticket.issue}</td>
+                    <td>
+                        <select id="status-${ticket.id}" onchange="changeStatus(${ticket.id}, '${ticket.issue}')">
+                            <option value="OPEN" ${ticket.status === 'OPEN' ? 'selected' : ''}>OPEN</option>
+                            <option value="PENDING" ${ticket.status === 'PENDING' ? 'selected' : ''}>PENDING</option>
+                            <option value="SOLVED" ${ticket.status === 'SOLVED' ? 'selected' : ''}>SOLVED</option>
+                        </select>
+                    </td>
+                    <td><button class="btn-delete" onclick="deleteTicket(${ticket.id})">Delete</button></td>
+                </tr>
+            `;
+            });
+        } catch (error) {
+            console.error("Search failed:", error);
+        }
+    }
+
+    // Initial load
+    fetchTickets();
+</script>
+
+</body>
+</html>
