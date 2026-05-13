@@ -1,5 +1,6 @@
 package com.harsh.myfirstapp;
 
+import com.harsh.myfirstapp.service.TicketService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -49,10 +50,6 @@ public class MyfirstappApplication {
 	public String calculate(@RequestParam int num1,int num2){ // @RequestParam - URLs k andar jo choti information aati he use pkdne k liye Eg. - ?id=101
 		int sum = num1 + num2;
 		return "The total is: "+ sum;
-}
-@GetMapping("/my-profile")
-	public User getProfile() {
-		return new User("Harsh Thakur", "IT", 2);
 }
 
 //@PostMapping("/create-ticket")     // @PostMapping : Data Save/Create krne k liye

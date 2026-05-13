@@ -1,5 +1,6 @@
-package com.harsh.myfirstapp;
+package com.harsh.myfirstapp.repository;
 
+import com.harsh.myfirstapp.SupportTicket;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

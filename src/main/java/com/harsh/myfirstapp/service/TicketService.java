@@ -1,5 +1,7 @@
-package com.harsh.myfirstapp;
+package com.harsh.myfirstapp.service;
 
+import com.harsh.myfirstapp.SupportTicket;
+import com.harsh.myfirstapp.repository.TicketRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
