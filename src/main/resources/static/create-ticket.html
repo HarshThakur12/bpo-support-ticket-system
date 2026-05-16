@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee - Raise Support Ticket</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 40px; background-color: #f4f7f6; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; margin-bottom: 20px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; }
+        input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; font-size: 1em; }
+        .btn-submit { width: 100%; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 5px; font-size: 1em; font-weight: bold; cursor: pointer; transition: background 0.3s; }
+        .btn-submit:hover { background-color: #218838; }
+        .header-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+        .btn-logout { background-color: #dc3545; color: white; padding: 6px 12px; border: none; border-radius: 4px; text-decoration: none; font-size: 0.9em; font-weight: bold; }
+        .btn-logout:hover { background-color: #bd2130; }
+        .success-msg { display: none; background-color: #d4edda; color: #155724; padding: 12px; border-radius: 5px; text-align: center; margin-bottom: 15px; font-weight: 500; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-area">
+        <span style="font-weight: bold; color: #007bff;">Employee Portal</span>
+        <a href="/logout" class="btn-logout">Logout</a>
+    </div>
+
+    <h2>🎧 Raise a Support Ticket</h2>
+
+    <div id="successBox" class="success-msg"></div>
+
+    <div class="form-group">
+        <label for="issueInput">What issue are you facing?</label>
+        <input type="text" id="issueInput" placeholder="e.g., Headset not working, Login failure...">
+    </div>
+
+    <button class="btn-submit" onclick="submitTicket()">Submit Ticket</button>
+</div>
+
+<script>
+    async function submitTicket() {
+        const issueInput = document.getElementById('issueInput');
+        const issueValue = issueInput.value.trim();
+        const successBox = document.getElementById('successBox');
+
+        if (!issueValue) {
+            alert("Please describe your issue before submitting!");
+            return;
+        }
+
+        // Tumhare Controller ki demand ke hisab se object banaya
+        const ticketData = {
+            issue: issueValue,
+            status: "OPEN" // Default status meshah OPEN rahega
+        };
+
+        try {
+            // Controller ke @PostMapping("/create-ticket") ko hit kar rahe hain
+            const response = await fetch("/create-ticket", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(ticketData)
+            });
+
+            if (response.ok) {
+                // Input box khali karo
+                issueInput.value = "";
+
+                // Success message dikhao
+                successBox.innerText = "Ticket raised successfully! IT team will look into it.";
+                successBox.style.display = "block";
+
+                // 3 second baad message gayab kar do
+                setTimeout(() => {
+                    successBox.style.display = "none";
+                }, 4000);
+            } else {
+                alert("Ticket create nahi ho payi. Dobara try karein!");
+            }
+        } catch (error) {
+            console.error("Error saving ticket:", error);
+            alert("Server se connect karne mein dikkat aayi!");
+        }
+    }
+</script>
+
+</body>
+</html>
