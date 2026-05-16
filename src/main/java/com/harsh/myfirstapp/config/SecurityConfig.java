@@ -15,15 +15,18 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // Testing ke liye disable
+                .csrf(csrf -> csrf.disable()) // Testing aur Postman ke liye disable
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/index.html", "/css/**", "/js/**").permitAll() // Public files[cite: 1]
-                        .anyRequest().authenticated() // Protected[cite: 1]
+                        // 1. `/login.html`, CSS, JS aur ticket CREATE karne wala endpoint PUBLIC rahega (Bina login ke chalega)
+                        .requestMatchers("/login.html", "/css/**", "/js/**", "/status", "/create-ticket").permitAll()
+
+                        // 2. Iske alawa baki saare endpoints (jaise /all-tickets, /update-ticket, /index.html) ke liye LOGIN zaroori hai
+                        .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
-                        .loginPage("/login.html") // Tumhara custom page
-                        .loginProcessingUrl("/login") // Ye default hi rehta hai
-                        .defaultSuccessUrl("/index.html", true)
+                        .loginPage("/login.html") // Tumhara custom login page
+                        .loginProcessingUrl("/login") // Spring Security ka internal processing URL
+                        .defaultSuccessUrl("/index.html", true) // Login hote hi seedha dashboard (index.html) par bhejo
                         .permitAll()
                 )
                 .logout(logout -> logout.permitAll());
@@ -31,9 +34,8 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // Yahan BCryptPasswordEncoder ka bean add kar dete hain taaki future mein kaam aaye
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return NoOpPasswordEncoder.getInstance(); // Abhi ke liye plain text password[cite: 1]
+        return NoOpPasswordEncoder.getInstance(); // Plain text passwords ke liye
     }
 }
